@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OC World Birthplace Map</title>
+  
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Marker Cluster CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: #0f1117;
+      color: #fff;
+    }
+    header {
+      padding: 12px 20px;
+      background: #181a20;
+      border-bottom: 1px solid #282b36;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+    }
+    h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    #counter {
+      color: #9ba1b0;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    #map {
+      flex: 1;
+      width: 100%;
+    }
+    /* Popup Card Styles */
+    .leaflet-popup-content-wrapper {
+      background: #1e222d;
+      color: #e2e8f0;
+      border-radius: 8px;
+      border: 1px solid #33394b;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .leaflet-popup-tip {
+      background: #1e222d;
+    }
+    .oc-card {
+      padding: 4px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .oc-card h3 {
+      font-size: 15px;
+      color: #5865F2; /* Discord Blurple */
+      margin-bottom: 6px;
+    }
+    .oc-field {
+      margin-bottom: 4px;
+    }
+    .oc-field strong {
+      color: #94a3b8;
+    }
+    .btn-group {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .btn {
+      display: block;
+      text-align: center;
+      padding: 6px 10px;
+      border-radius: 5px;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-discord-user {
+      background-color: #2b2d31;
+      color: #dbdee1;
+      border: 1px solid #3f4147;
+    }
+    .btn-profile {
+      background-color: #5865F2;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🗺️ OC Registry Map</h1>
+    <div id="counter">Loading pins...</div>
+  </header>
+
+  <div id="map"></div>
+
+  <!-- Leaflet Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <script>
+    const API_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnQRKS0KOxYxlMgd28zyB9syQ24W9nXf42CxGs0TGHVD1OReR6uI_VGm3uYDz5uUw9riOSMmkN64ITayPkpCJqlCb-AmAjn4qNw0LKEMHhRmsI-3dTFw831vr4ZZqBWQh1uXiw7_P6hbx5iklYJPfa2h5dSElfEFzzQgANCTUFdo51XlS3bqe3oSNq42WDpmSSmumWtmgwqbeKMQKCYq7-oKWKZAE2J1_tMRv42S1KeNdiWh6yeXVXtOY22Hsn3Fwdd7jaFUYSTmqODzZv5zMI4cs3gxpQ&lib=Mw5vPTjn4UjD5Lm0oUHfc6lMxQhbz4HXW';
+
+    // Center map globally
+    const map = L.map('map').setView([20, 0], 2);
+
+    // Dark-style world map layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      maxZoom: 19
+    }).addTo(map);
+
+    // Cluster group for overlapping pins
+    const markers = L.markerClusterGroup({
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true
+    });
+
+    fetch(API_URL)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('counter').innerText = `${data.length} Character${data.length === 1 ? '' : 's'} Registered`;
+
+        data.forEach(oc => {
+          const locationText = oc.hospital ? `${oc.hospital}, ${oc.city}, ${oc.country}` : `${oc.city}, ${oc.country}`;
+          
+          const userLink = oc.discordId ? `https://discord.com/users/${oc.discordId}` : null;
+
+          const popup = `
+            <div class="oc-card">
+              <h3>${escapeHtml(oc.ocName)}</h3>
+              <div class="oc-field"><strong>Location:</strong> ${escapeHtml(locationText)}</div>
+              <div class="oc-field"><strong>Creator:</strong> @${escapeHtml(oc.discordUsername)}</div>
+              <div class="btn-group">
+                ${userLink ? `<a class="btn btn-discord-user" href="${userLink}" target="_blank">👤 View Discord User</a>` : ''}
+                ${oc.profileLink ? `<a class="btn btn-profile" href="${oc.profileLink}" target="_blank">📜 View OC Profile</a>` : ''}
+              </div>
+            </div>
+          `;
+
+          const marker = L.marker([oc.lat, oc.lon]);
+          marker.bindPopup(popup);
+          markers.addLayer(marker);
+        });
+
+        map.addLayer(markers);
+      })
+      .catch(err => {
+        console.error('Error fetching pins:', err);
+        document.getElementById('counter').innerText = 'Failed to load entries.';
+      });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[m]));
+    }
+  </script>
+</body>
+</html>
