@@ -3,377 +3,469 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OC World Birthplace Map</title>
+  <title>OC World Registry</title>
   
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- Marker Cluster CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 
-  <!-- Google Fonts: Inter -->
+  <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   
+  <!-- Icons (Lucide) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
   <style>
+    /* 1. Base Variables & Reset - Strict, flat palette */
     :root {
-      --bg-main: #0c0e12;
-      --bg-panel: rgba(19, 23, 34, 0.82);
-      --border-panel: rgba(255, 255, 255, 0.08);
-      --blurple: #5865F2;
-      --blurple-glow: rgba(88, 101, 242, 0.55);
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
+      --bg-dark: #0a0a0a;
+      --bg-panel: #141414;
+      --bg-hover: #1f1f1f;
+      --border: #262626;
+      --text-main: #ededed;
+      --text-muted: #a3a3a3;
+      --brand: #5865F2; /* Flat Discord Blurple, used sparingly */
     }
 
     * { 
       box-sizing: border-box; 
       margin: 0; 
       padding: 0; 
-      font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+      font-family: 'Inter', sans-serif;
       -webkit-font-smoothing: antialiased;
     }
 
     body { 
       display: flex; 
-      flex-direction: column; 
       height: 100vh; 
-      background: var(--bg-main); 
+      background: var(--bg-dark); 
       color: var(--text-main); 
       overflow: hidden;
     }
 
-    /* Floating Header Card */
-    header { 
-      position: absolute;
-      top: 18px;
-      left: 50%;
-      transform: translateX(-50%);
+    /* 2. Layout Structure - No centering in the void */
+    #app-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    #sidebar {
+      width: 340px;
       background: var(--bg-panel);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border: 1px solid var(--border-panel);
-      border-radius: 9999px;
-      padding: 10px 22px;
-      display: flex; 
-      align-items: center; 
-      gap: 16px;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
-      z-index: 1000; 
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 10; /* Above map */
     }
 
-    header:hover {
-      border-color: rgba(88, 101, 242, 0.3);
-      box-shadow: 0 16px 40px rgba(88, 101, 242, 0.15);
+    #map { 
+      flex: 1;
+      background: var(--bg-dark);
     }
 
-    h1 { 
-      font-size: 0.95rem; 
-      font-weight: 700; 
-      letter-spacing: -0.2px; 
+    /* 3. Sidebar Header & Search */
+    .sidebar-header {
+      padding: 24px 24px 16px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 16px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    #counter { 
-      color: var(--text-muted); 
-      font-size: 0.8rem; 
-      font-weight: 600;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 4px 12px;
-      border-radius: 9999px;
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      display: inline-flex;
+    .search-box {
+      position: relative;
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      width: 16px;
+      height: 16px;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-radius: 4px;
+      padding: 10px 12px 10px 36px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--text-muted);
+    }
+
+    /* 4. List View & Empty States (Human microcopy) */
+    #roster-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .status-message {
+      padding: 24px 12px;
+      font-size: 14px;
+      color: var(--text-muted);
+      text-align: left;
+      line-height: 1.5;
+    }
+
+    .roster-card {
+      width: 100%;
+      background: transparent;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: background 0.1s;
+    }
+
+    .roster-card:hover {
+      background: var(--bg-hover);
+    }
+
+    .roster-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .roster-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
       align-items: center;
       gap: 6px;
     }
 
-    #counter::before {
-      content: '';
-      width: 6px;
-      height: 6px;
-      background: #10b981;
-      border-radius: 50%;
-      box-shadow: 0 0 8px #10b981;
+    .roster-meta i {
+      width: 12px;
+      height: 12px;
     }
 
-    #map { 
-      flex: 1; 
-      width: 100%; 
-      height: 100%;
-      background: #0c0e12;
-    }
-
-    /* Custom Discord Map Pin */
-    .custom-pin-wrapper {
-      position: relative;
+    /* 5. The Hand-Made Detail: Polaroid Map Pins */
+    .polaroid-pin {
+      background: #fafafa;
+      padding: 4px 4px 14px 4px; /* Bottom-heavy padding */
+      box-shadow: 2px 4px 12px rgba(0,0,0,0.4);
+      border-radius: 2px;
       width: 44px;
-      height: 44px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transform-origin: center center;
     }
 
-    .custom-pin-avatar {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      border: 2px solid var(--blurple);
-      background: #181a20;
+    .polaroid-pin:hover {
+      box-shadow: 4px 8px 16px rgba(0,0,0,0.6);
+    }
+
+    .polaroid-img {
+      width: 36px;
+      height: 36px;
+      background: #e5e5e5;
       object-fit: cover;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45), 0 0 12px var(--blurple-glow);
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+      display: block;
+      border-radius: 1px;
     }
 
-    .custom-pin-wrapper:hover .custom-pin-avatar {
-      transform: scale(1.18) translateY(-4px);
-      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.6), 0 0 20px var(--blurple);
-    }
-
-    .custom-pin-wrapper::after {
-      content: '';
-      position: absolute;
-      bottom: -1px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 5px solid transparent;
-      border-right: 5px solid transparent;
-      border-top: 6px solid var(--blurple);
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    .custom-pin-wrapper:hover::after {
-      transform: translateX(-50%) translateY(2px);
-    }
-
-    /* Glassmorphism Popup Window */
+    /* 6. Clean, Flat Popup Override */
     .leaflet-popup-content-wrapper { 
       background: var(--bg-panel) !important;
-      backdrop-filter: blur(16px) !important;
-      -webkit-backdrop-filter: blur(16px) !important;
       color: var(--text-main) !important; 
-      border-radius: 14px !important; 
-      border: 1px solid var(--border-panel) !important; 
-      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65) !important;
-      padding: 6px !important;
+      border-radius: 4px !important; 
+      border: 1px solid var(--border) !important; 
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+      padding: 0 !important;
+    }
+
+    .leaflet-popup-content {
+      margin: 0 !important;
+      width: 260px !important;
     }
 
     .leaflet-popup-tip { 
       background: var(--bg-panel) !important; 
-      border: 1px solid var(--border-panel) !important;
+      border-bottom: 1px solid var(--border) !important;
+      border-right: 1px solid var(--border) !important;
     }
 
-    .oc-card { 
-      padding: 6px 4px;
-      font-size: 13px; 
-      line-height: 1.5; 
-      min-width: 210px;
+    .popup-header {
+      padding: 16px 16px 12px 16px;
+      border-bottom: 1px solid var(--border);
     }
 
-    .oc-card h3 { 
-      font-size: 16px; 
-      font-weight: 700;
-      color: #fff;
-      letter-spacing: -0.3px;
-      margin-bottom: 8px; 
+    .popup-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .popup-meta {
+      font-size: 13px;
+      color: var(--text-muted);
       display: flex;
       align-items: center;
-      justify-content: space-between;
-    }
-
-    .oc-field { 
-      margin-bottom: 5px; 
-      display: flex;
-      align-items: baseline;
       gap: 6px;
-      font-size: 12.5px;
     }
 
-    .oc-field strong { 
-      color: var(--text-muted); 
-      font-weight: 500;
-      min-width: 58px;
+    .popup-meta i {
+      width: 14px;
+      height: 14px;
     }
 
-    .btn-group { 
-      margin-top: 12px; 
-      display: flex; 
-      flex-direction: column; 
-      gap: 6px; 
+    .popup-body {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .btn { 
-      display: inline-flex; 
+      display: flex;
       align-items: center;
       justify-content: center;
-      gap: 7px;
+      gap: 8px;
+      width: 100%;
       padding: 8px 12px; 
-      border-radius: 8px; 
+      border-radius: 4px; 
       text-decoration: none; 
-      font-size: 12px; 
-      font-weight: 600; 
-      letter-spacing: -0.1px;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      font-size: 13px; 
+      font-weight: 500; 
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      background: var(--bg-dark);
+      transition: background 0.1s, border-color 0.1s;
     }
 
-    .btn:hover { 
-      transform: translateY(-1px);
+    .btn i { width: 14px; height: 14px; }
+    .btn:hover { background: var(--bg-hover); border-color: #404040; }
+
+    /* Accent color only used for primary action */
+    .btn-primary { 
+      background: var(--brand); 
+      border-color: var(--brand);
+    }
+    .btn-primary:hover { 
+      background: #4752c4; 
+      border-color: #4752c4;
     }
 
-    .btn:active {
-      transform: translateY(0);
-    }
-
-    .btn-discord-user { 
-      background: rgba(255, 255, 255, 0.06); 
-      color: #e2e8f0; 
-      border: 1px solid rgba(255, 255, 255, 0.08); 
-    }
-
-    .btn-discord-user:hover { 
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
-    }
-
-    .btn-profile { 
-      background: var(--blurple); 
-      color: #ffffff; 
-      box-shadow: 0 4px 12px rgba(88, 101, 242, 0.35);
-    }
-
-    .btn-profile:hover { 
-      background: #4752c4;
-      box-shadow: 0 6px 16px rgba(88, 101, 242, 0.5);
-    }
-
-    /* MarkerCluster Custom Theme */
+    /* Flat cluster styling */
     .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
-      background-color: rgba(88, 101, 242, 0.3) !important;
+      background-color: transparent !important;
     }
-
-    .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
-      background-color: var(--blurple) !important;
-      color: #fff !important;
-      font-weight: 700 !important;
+    .marker-cluster div {
+      background-color: var(--bg-panel) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text-main) !important;
       font-family: 'Inter', sans-serif !important;
-      box-shadow: 0 0 14px var(--blurple-glow);
+      font-size: 13px !important;
+      font-weight: 500 !important;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>🗺️ OC World Registry</h1>
-    <div id="counter">Loading registry...</div>
-  </header>
+  <div id="app-container">
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-title">
+          <i data-lucide="globe"></i>
+          Registry Records
+        </div>
+        <div class="search-box">
+          <i data-lucide="search"></i>
+          <input type="text" id="searchInput" placeholder="Find by name, location, or creator..." autocomplete="off">
+        </div>
+      </div>
+      <div id="roster-list">
+        <!-- Zero state design -->
+        <div class="status-message" id="status-text">
+          Pulling up the map records...
+        </div>
+      </div>
+    </aside>
 
-  <div id="map"></div>
+    <main id="map"></main>
+  </div>
 
-  <!-- Leaflet Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
   <script>
+    // Initialize icons
+    lucide.createIcons();
+
     const API_URL = 'https://script.google.com/macros/s/AKfycbzWvHeUVafTSusTld5wreBbY9lR_eQWoG_467p7E94fA5bl1T4fd8ne4EpYKhdt_OLR2A/exec';
 
-    const map = L.map('map', {
-      zoomControl: false,
-      attributionControl: false
-    }).setView([20, 0], 3);
+    // Global state for the search filter
+    let ocData = [];
 
-    // Reposition zoom controls to bottom-right so the floating header stays clean
+    // Initialize Map
+    const map = L.map('map', { zoomControl: false }).setView([20, 0], 3);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Free OpenStreetMap tile server
+    // Free, clean map tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
     }).addTo(map);
 
-    // Clusters with smooth spiderfy animations
     const markers = L.markerClusterGroup({
       spiderfyOnMaxZoom: true,
       showCoverageOnHover: false,
       zoomToBoundsOnClick: true,
-      maxClusterRadius: 35
+      maxClusterRadius: 40
     });
 
-    const defaultAvatar = "https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png";
+    const rosterList = document.getElementById('roster-list');
+    const searchInput = document.getElementById('searchInput');
 
+    // Fetch the data
     fetch(API_URL, { redirect: 'follow' })
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+      .then(res => res.json())
       .then(data => {
-        document.getElementById('counter').innerText = `${data.length} Character${data.length === 1 ? '' : 's'} Active`;
-
-        data.forEach(oc => {
-          const locationText = oc.hospital ? `${oc.hospital}, ${oc.city}, ${oc.country}` : `${oc.city}, ${oc.country}`;
-          const userLink = oc.discordId ? `https://discord.com/users/${oc.discordId}` : null;
-          const avatarElementId = `avatar-${oc.discordId || Math.random().toString(36).substr(2, 9)}`;
-
-          const customIcon = L.divIcon({
-            className: 'custom-pin-wrapper',
-            html: `<img class="custom-pin-avatar" id="${avatarElementId}" src="${defaultAvatar}" alt="Discord Avatar" />`,
-            iconSize: [44, 44],
-            iconAnchor: [22, 43],
-            popupAnchor: [0, -38]
-          });
-
-          const popup = `
-            <div class="oc-card">
-              <h3>${escapeHtml(oc.ocName)}</h3>
-              <div class="oc-field"><strong>Location</strong> <span>${escapeHtml(locationText)}</span></div>
-              <div class="oc-field"><strong>Creator</strong> <span>@${escapeHtml(oc.discordUsername)}</span></div>
-              <div class="btn-group">
-                ${userLink ? `<a class="btn btn-discord-user" href="${userLink}" target="_blank">👤 View Discord User</a>` : ''}
-                ${oc.profileLink ? `<a class="btn btn-profile" href="${oc.profileLink}" target="_blank">📜 View OC Profile</a>` : ''}
-              </div>
-            </div>
-          `;
-
-          const marker = L.marker([oc.lat, oc.lon], { icon: customIcon });
-          marker.bindPopup(popup);
-          markers.addLayer(marker);
-
-          // Fetch the live Discord avatar dynamically if a numeric User ID is provided
-          if (oc.discordId && /^\d+$/.test(oc.discordId)) {
-            fetch(`https://api.discordlookup.com/v1/user/${oc.discordId}`)
-              .then(r => r.json())
-              .then(userData => {
-                if (userData && userData.avatar && userData.avatar.id) {
-                  const img = document.getElementById(avatarElementId);
-                  if (img) {
-                    img.src = `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar.id}.png?size=64`;
-                  }
-                }
-              })
-              .catch(() => {});
-          }
-        });
-
-        map.addLayer(markers);
+        ocData = data;
+        renderApp(ocData);
       })
       .catch(err => {
-        console.error('Error fetching registry pins:', err);
-        document.getElementById('counter').innerText = 'Failed to load entries';
+        rosterList.innerHTML = `<div class="status-message">Couldn't connect to the database. Check your connection and try again.</div>`;
       });
+
+    // Handle Search
+    searchInput.addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase();
+      const filtered = ocData.filter(oc => 
+        (oc.ocName && oc.ocName.toLowerCase().includes(term)) ||
+        (oc.city && oc.city.toLowerCase().includes(term)) ||
+        (oc.discordUsername && oc.discordUsername.toLowerCase().includes(term)) ||
+        (oc.country && oc.country.toLowerCase().includes(term))
+      );
+      renderApp(filtered, term !== '');
+    });
+
+    function renderApp(data, isSearch = false) {
+      // Clear current map pins and sidebar
+      markers.clearLayers();
+      rosterList.innerHTML = '';
+
+      // Empty State Design
+      if (data.length === 0) {
+        rosterList.innerHTML = `
+          <div class="status-message">
+            Nobody matched that search. Try a different name or city.
+          </div>
+        `;
+        return;
+      }
+
+      data.forEach(oc => {
+        const locationText = oc.hospital ? `${oc.hospital}, ${oc.city}` : oc.city;
+        
+        // Build Sidebar Item
+        const btn = document.createElement('button');
+        btn.className = 'roster-card';
+        btn.innerHTML = `
+          <div class="roster-name">${escapeHtml(oc.ocName)}</div>
+          <div class="roster-meta">
+            <i data-lucide="map-pin"></i> ${escapeHtml(locationText)}
+          </div>
+        `;
+        btn.onclick = () => {
+          map.setView([oc.lat, oc.lon], 6);
+          // Slight delay to allow spiderfy to resolve before opening popup
+          setTimeout(() => marker.openPopup(), 300);
+        };
+        rosterList.appendChild(btn);
+
+        // Build Polaroid Map Pin
+        // The hand-made touch: deterministic slight rotation based on coordinates
+        const pseudoRandomRotation = Math.floor((Math.abs(oc.lat) + Math.abs(oc.lon)) % 12) - 6; 
+        const avatarElementId = `avatar-${Math.random().toString(36).substr(2, 9)}`;
+        const defaultAvatar = 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png';
+
+        const customIcon = L.divIcon({
+          className: 'leaflet-polaroid', // custom class to avoid default leaf styling
+          html: `
+            <div class="polaroid-pin" style="transform: rotate(${pseudoRandomRotation}deg);" onmouseover="this.style.transform='rotate(0deg) scale(1.05)'" onmouseout="this.style.transform='rotate(${pseudoRandomRotation}deg) scale(1)'">
+              <img class="polaroid-img" id="${avatarElementId}" src="${defaultAvatar}" alt="Profile">
+            </div>
+          `,
+          iconSize: [44, 54],
+          iconAnchor: [22, 54],
+          popupAnchor: [0, -50]
+        });
+
+        // Build Flat Popup
+        const userLink = oc.discordId ? `https://discord.com/users/${oc.discordId}` : null;
+        const popupContent = `
+          <div class="popup-header">
+            <h3>${escapeHtml(oc.ocName)}</h3>
+            <div class="popup-meta">
+              <i data-lucide="user"></i> @${escapeHtml(oc.discordUsername)}
+            </div>
+            <div class="popup-meta" style="margin-top: 4px;">
+              <i data-lucide="map-pin"></i> ${escapeHtml(locationText)}, ${escapeHtml(oc.country)}
+            </div>
+          </div>
+          <div class="popup-body">
+            ${userLink ? `<a class="btn" href="${userLink}" target="_blank"><i data-lucide="message-square"></i> Open Discord profile</a>` : ''}
+            ${oc.profileLink ? `<a class="btn btn-primary" href="${oc.profileLink}" target="_blank"><i data-lucide="file-text"></i> Read character sheet</a>` : ''}
+          </div>
+        `;
+
+        const marker = L.marker([oc.lat, oc.lon], { icon: customIcon });
+        marker.bindPopup(popupContent);
+        markers.addLayer(marker);
+
+        // Fixed Discord Avatar Fetcher using reliable mesalinc lookup
+        if (oc.discordId && /^\d+$/.test(oc.discordId)) {
+          fetch(`https://discordlookup.mesalinc.com/v1/user/${oc.discordId}`)
+            .then(r => r.json())
+            .then(userData => {
+              // The API returns the direct image URL in avatar.link
+              if (userData && userData.avatar && userData.avatar.link) {
+                const img = document.getElementById(avatarElementId);
+                if (img) {
+                  img.src = userData.avatar.link + '?size=64';
+                }
+              }
+            })
+            .catch(() => { /* Fails silently, leaves default gray polaroid */ });
+        }
+      });
+
+      map.addLayer(markers);
+      lucide.createIcons(); // Re-initialize icons for dynamically created DOM elements
+    }
 
     function escapeHtml(str) {
       if (!str) return '';
       return String(str).replace(/[&<>"']/g, m => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
       }[m]));
     }
   </script>
