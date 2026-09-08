@@ -10,24 +10,23 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 
-  <!-- Typography -->
+  <!-- Inter Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   
-  <!-- Icons (Lucide) -->
+  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <style>
-    /* 1. Base Variables & Reset - Strict, flat palette */
     :root {
-      --bg-dark: #0a0a0a;
-      --bg-panel: #141414;
-      --bg-hover: #1f1f1f;
-      --border: #262626;
-      --text-main: #ededed;
-      --text-muted: #a3a3a3;
-      --brand: #5865F2; /* Flat Discord Blurple, used sparingly */
+      --bg-base: #09090b; /* Zinc 950 */
+      --bg-surface: #18181b; /* Zinc 900 */
+      --bg-hover: #27272a; /* Zinc 800 */
+      --border: #27272a;
+      --text-main: #fafafa;
+      --text-muted: #a1a1aa;
+      --accent: #5865F2; /* Discord Blurple */
     }
 
     * { 
@@ -41,12 +40,18 @@
     body { 
       display: flex; 
       height: 100vh; 
-      background: var(--bg-dark); 
+      background: var(--bg-base); 
       color: var(--text-main); 
       overflow: hidden;
     }
 
-    /* 2. Layout Structure - No centering in the void */
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+    /* Layout */
     #app-container {
       display: flex;
       width: 100%;
@@ -54,27 +59,36 @@
     }
 
     #sidebar {
-      width: 340px;
-      background: var(--bg-panel);
+      width: 360px;
+      background: var(--bg-base);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      z-index: 10; /* Above map */
+      z-index: 10;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.4);
     }
 
     #map { 
       flex: 1;
-      background: var(--bg-dark);
+      background: #111; /* Dark base behind map */
     }
 
-    /* 3. Sidebar Header & Search */
+    /* 
+      MAGIC TRICK: Dark Mode Map Tiles 
+      Inverts standard OSM tiles and shifts hue so water stays blue/dark 
+    */
+    .leaflet-tile-pane {
+      filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(90%);
+    }
+
+    /* Sidebar Header */
     .sidebar-header {
-      padding: 24px 24px 16px 24px;
+      padding: 24px 20px 16px;
       border-bottom: 1px solid var(--border);
     }
 
     .brand-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       letter-spacing: 0.5px;
       text-transform: uppercase;
@@ -85,10 +99,7 @@
       gap: 8px;
     }
 
-    .search-box {
-      position: relative;
-    }
-
+    .search-box { position: relative; }
     .search-box i {
       position: absolute;
       left: 12px;
@@ -98,24 +109,23 @@
       width: 16px;
       height: 16px;
     }
-
     .search-box input {
       width: 100%;
-      background: var(--bg-dark);
+      background: var(--bg-surface);
       border: 1px solid var(--border);
       color: var(--text-main);
-      border-radius: 4px;
+      border-radius: 8px;
       padding: 10px 12px 10px 36px;
       font-size: 14px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: all 0.2s ease;
     }
-
     .search-box input:focus {
-      border-color: var(--text-muted);
+      border-color: #52525b;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.05);
     }
 
-    /* 4. List View & Empty States (Human microcopy) */
+    /* Roster List */
     #roster-list {
       flex: 1;
       overflow-y: auto;
@@ -126,164 +136,175 @@
       padding: 24px 12px;
       font-size: 14px;
       color: var(--text-muted);
-      text-align: left;
       line-height: 1.5;
     }
 
     .roster-card {
       width: 100%;
       background: transparent;
-      border: none;
+      border: 1px solid transparent;
       padding: 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       text-align: left;
       cursor: pointer;
       display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+    .roster-card:hover {
+      background: var(--bg-surface);
+      border-color: var(--border);
+      transform: translateX(4px);
+    }
+
+    .roster-flag {
+      font-size: 20px;
+      background: rgba(255,255,255,0.05);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+    }
+
+    .roster-info {
+      display: flex;
       flex-direction: column;
       gap: 4px;
-      transition: background 0.1s;
     }
-
-    .roster-card:hover {
-      background: var(--bg-hover);
-    }
-
     .roster-name {
       font-size: 14px;
       font-weight: 500;
       color: var(--text-main);
     }
-
     .roster-meta {
       font-size: 12px;
       color: var(--text-muted);
+    }
+
+    /* Glassmorphic Map Pins */
+    .emoji-pin-wrapper {
       display: flex;
       align-items: center;
-      gap: 6px;
+      justify-content: center;
     }
-
-    .roster-meta i {
-      width: 12px;
-      height: 12px;
-    }
-
-    /* 5. The Hand-Made Detail: Polaroid Map Pins */
-    .polaroid-pin {
-      background: #fafafa;
-      padding: 4px 4px 14px 4px; /* Bottom-heavy padding */
-      box-shadow: 2px 4px 12px rgba(0,0,0,0.4);
-      border-radius: 2px;
+    .emoji-pin {
+      font-size: 22px;
+      background: rgba(24, 24, 27, 0.85); /* Zinc 900 */
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 50%;
       width: 44px;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      transform-origin: center center;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .emoji-pin-wrapper:hover .emoji-pin {
+      transform: scale(1.15) translateY(-4px);
+      border-color: rgba(255,255,255,0.4);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.7);
     }
 
-    .polaroid-pin:hover {
-      box-shadow: 4px 8px 16px rgba(0,0,0,0.6);
-    }
-
-    .polaroid-img {
-      width: 36px;
-      height: 36px;
-      background: #e5e5e5;
-      object-fit: cover;
-      display: block;
-      border-radius: 1px;
-    }
-
-    /* 6. Clean, Flat Popup Override */
+    /* Popup Windows */
     .leaflet-popup-content-wrapper { 
-      background: var(--bg-panel) !important;
+      background: var(--bg-surface) !important;
       color: var(--text-main) !important; 
-      border-radius: 4px !important; 
+      border-radius: 12px !important; 
       border: 1px solid var(--border) !important; 
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6) !important;
       padding: 0 !important;
     }
-
     .leaflet-popup-content {
       margin: 0 !important;
-      width: 260px !important;
+      width: 270px !important;
     }
-
     .leaflet-popup-tip { 
-      background: var(--bg-panel) !important; 
+      background: var(--bg-surface) !important; 
       border-bottom: 1px solid var(--border) !important;
       border-right: 1px solid var(--border) !important;
     }
 
     .popup-header {
-      padding: 16px 16px 12px 16px;
+      padding: 16px;
       border-bottom: 1px solid var(--border);
-    }
-
-    .popup-header h3 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .popup-meta {
-      font-size: 13px;
-      color: var(--text-muted);
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 12px;
     }
-
-    .popup-meta i {
-      width: 14px;
-      height: 14px;
+    .popup-flag {
+      font-size: 24px;
+    }
+    .popup-title h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .popup-title p {
+      font-size: 12px;
+      color: var(--text-muted);
     }
 
     .popup-body {
-      padding: 12px 16px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
+    .popup-detail {
+      font-size: 12.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .popup-detail i { width: 14px; height: 14px; }
 
+    /* Action Buttons */
     .btn { 
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       width: 100%;
-      padding: 8px 12px; 
-      border-radius: 4px; 
+      padding: 10px; 
+      border-radius: 6px; 
       text-decoration: none; 
       font-size: 13px; 
       font-weight: 500; 
       border: 1px solid var(--border);
       color: var(--text-main);
-      background: var(--bg-dark);
-      transition: background 0.1s, border-color 0.1s;
+      background: var(--bg-base);
+      transition: all 0.2s;
     }
-
     .btn i { width: 14px; height: 14px; }
-    .btn:hover { background: var(--bg-hover); border-color: #404040; }
+    .btn:hover { background: var(--bg-hover); }
 
-    /* Accent color only used for primary action */
     .btn-primary { 
-      background: var(--brand); 
-      border-color: var(--brand);
+      background: var(--accent); 
+      border-color: var(--accent);
+      color: white;
     }
     .btn-primary:hover { 
       background: #4752c4; 
       border-color: #4752c4;
     }
 
-    /* Flat cluster styling */
-    .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
-      background-color: transparent !important;
-    }
+    /* Marker Cluster styling */
     .marker-cluster div {
-      background-color: var(--bg-panel) !important;
-      border: 1px solid var(--border) !important;
+      background-color: var(--bg-surface) !important;
+      border: 1px solid rgba(255,255,255,0.2) !important;
       color: var(--text-main) !important;
       font-family: 'Inter', sans-serif !important;
-      font-size: 13px !important;
-      font-weight: 500 !important;
+      font-weight: 600 !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
   </style>
 </head>
@@ -293,19 +314,16 @@
     <aside id="sidebar">
       <div class="sidebar-header">
         <div class="brand-title">
-          <i data-lucide="globe"></i>
-          Registry Records
+          <i data-lucide="globe-2"></i>
+          World Map Registry
         </div>
         <div class="search-box">
           <i data-lucide="search"></i>
-          <input type="text" id="searchInput" placeholder="Find by name, location, or creator..." autocomplete="off">
+          <input type="text" id="searchInput" placeholder="Search characters, cities, creators..." autocomplete="off">
         </div>
       </div>
       <div id="roster-list">
-        <!-- Zero state design -->
-        <div class="status-message" id="status-text">
-          Pulling up the map records...
-        </div>
+        <div class="status-message">Syncing map data...</div>
       </div>
     </aside>
 
@@ -316,19 +334,15 @@
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
   <script>
-    // Initialize icons
     lucide.createIcons();
 
     const API_URL = 'https://script.google.com/macros/s/AKfycbzWvHeUVafTSusTld5wreBbY9lR_eQWoG_467p7E94fA5bl1T4fd8ne4EpYKhdt_OLR2A/exec';
-
-    // Global state for the search filter
     let ocData = [];
 
     // Initialize Map
     const map = L.map('map', { zoomControl: false }).setView([20, 0], 3);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Free, clean map tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap'
@@ -341,10 +355,28 @@
       maxClusterRadius: 40
     });
 
+    // Helper: Map country strings to Emojis
+    function getFlagEmoji(countryString) {
+      if (!countryString) return '🌍';
+      const clean = countryString.toLowerCase().trim();
+      const flagMap = {
+        'panama': '🇵🇦', 'panamá': '🇵🇦',
+        'united states': '🇺🇸', 'usa': '🇺🇸', 'us': '🇺🇸', 'america': '🇺🇸',
+        'united kingdom': '🇬🇧', 'uk': '🇬🇧', 'england': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+        'japan': '🇯🇵', 'canada': '🇨🇦', 'mexico': '🇲🇽', 'méxico': '🇲🇽',
+        'brazil': '🇧🇷', 'brasil': '🇧🇷', 'germany': '🇩🇪', 'france': '🇫🇷',
+        'spain': '🇪🇸', 'españa': '🇪🇸', 'italy': '🇮🇹', 'russia': '🇷🇺',
+        'china': '🇨🇳', 'korea': '🇰🇷', 'south korea': '🇰🇷', 'australia': '🇦🇺',
+        'argentina': '🇦🇷', 'colombia': '🇨🇴', 'chile': '🇨🇱', 'peru': '🇵🇪', 'perú': '🇵🇪',
+        'venezuela': '🇻🇪', 'philippines': '🇵🇭', 'india': '🇮🇳'
+      };
+      return flagMap[clean] || '📍';
+    }
+
     const rosterList = document.getElementById('roster-list');
     const searchInput = document.getElementById('searchInput');
 
-    // Fetch the data
+    // Fetch API
     fetch(API_URL, { redirect: 'follow' })
       .then(res => res.json())
       .then(data => {
@@ -352,10 +384,10 @@
         renderApp(ocData);
       })
       .catch(err => {
-        rosterList.innerHTML = `<div class="status-message">Couldn't connect to the database. Check your connection and try again.</div>`;
+        rosterList.innerHTML = `<div class="status-message">Couldn't connect to the database.</div>`;
       });
 
-    // Handle Search
+    // Search Logic
     searchInput.addEventListener('input', (e) => {
       const term = e.target.value.toLowerCase();
       const filtered = ocData.filter(oc => 
@@ -364,102 +396,74 @@
         (oc.discordUsername && oc.discordUsername.toLowerCase().includes(term)) ||
         (oc.country && oc.country.toLowerCase().includes(term))
       );
-      renderApp(filtered, term !== '');
+      renderApp(filtered);
     });
 
-    function renderApp(data, isSearch = false) {
-      // Clear current map pins and sidebar
+    function renderApp(data) {
       markers.clearLayers();
       rosterList.innerHTML = '';
 
-      // Empty State Design
       if (data.length === 0) {
-        rosterList.innerHTML = `
-          <div class="status-message">
-            Nobody matched that search. Try a different name or city.
-          </div>
-        `;
+        rosterList.innerHTML = `<div class="status-message">No records found matching your search.</div>`;
         return;
       }
 
       data.forEach(oc => {
+        const flag = getFlagEmoji(oc.country);
         const locationText = oc.hospital ? `${oc.hospital}, ${oc.city}` : oc.city;
         
-        // Build Sidebar Item
+        // --- Sidebar Card ---
         const btn = document.createElement('button');
         btn.className = 'roster-card';
         btn.innerHTML = `
-          <div class="roster-name">${escapeHtml(oc.ocName)}</div>
-          <div class="roster-meta">
-            <i data-lucide="map-pin"></i> ${escapeHtml(locationText)}
+          <div class="roster-flag">${flag}</div>
+          <div class="roster-info">
+            <span class="roster-name">${escapeHtml(oc.ocName)}</span>
+            <span class="roster-meta">${escapeHtml(oc.city)}, ${escapeHtml(oc.country)}</span>
           </div>
         `;
         btn.onclick = () => {
           map.setView([oc.lat, oc.lon], 6);
-          // Slight delay to allow spiderfy to resolve before opening popup
-          setTimeout(() => marker.openPopup(), 300);
+          setTimeout(() => marker.openPopup(), 350);
         };
         rosterList.appendChild(btn);
 
-        // Build Polaroid Map Pin
-        // The hand-made touch: deterministic slight rotation based on coordinates
-        const pseudoRandomRotation = Math.floor((Math.abs(oc.lat) + Math.abs(oc.lon)) % 12) - 6; 
-        const avatarElementId = `avatar-${Math.random().toString(36).substr(2, 9)}`;
-        const defaultAvatar = 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png';
-
+        // --- Glassmorphic Emoji Pin ---
         const customIcon = L.divIcon({
-          className: 'leaflet-polaroid', // custom class to avoid default leaf styling
-          html: `
-            <div class="polaroid-pin" style="transform: rotate(${pseudoRandomRotation}deg);" onmouseover="this.style.transform='rotate(0deg) scale(1.05)'" onmouseout="this.style.transform='rotate(${pseudoRandomRotation}deg) scale(1)'">
-              <img class="polaroid-img" id="${avatarElementId}" src="${defaultAvatar}" alt="Profile">
-            </div>
-          `,
-          iconSize: [44, 54],
-          iconAnchor: [22, 54],
-          popupAnchor: [0, -50]
+          className: 'emoji-pin-wrapper',
+          html: `<div class="emoji-pin">${flag}</div>`,
+          iconSize: [44, 44],
+          iconAnchor: [22, 22],
+          popupAnchor: [0, -24]
         });
 
-        // Build Flat Popup
+        // --- Clean Popup Window ---
         const userLink = oc.discordId ? `https://discord.com/users/${oc.discordId}` : null;
         const popupContent = `
           <div class="popup-header">
-            <h3>${escapeHtml(oc.ocName)}</h3>
-            <div class="popup-meta">
-              <i data-lucide="user"></i> @${escapeHtml(oc.discordUsername)}
-            </div>
-            <div class="popup-meta" style="margin-top: 4px;">
-              <i data-lucide="map-pin"></i> ${escapeHtml(locationText)}, ${escapeHtml(oc.country)}
+            <div class="popup-flag">${flag}</div>
+            <div class="popup-title">
+              <h3>${escapeHtml(oc.ocName)}</h3>
+              <p>@${escapeHtml(oc.discordUsername)}</p>
             </div>
           </div>
           <div class="popup-body">
-            ${userLink ? `<a class="btn" href="${userLink}" target="_blank"><i data-lucide="message-square"></i> Open Discord profile</a>` : ''}
-            ${oc.profileLink ? `<a class="btn btn-primary" href="${oc.profileLink}" target="_blank"><i data-lucide="file-text"></i> Read character sheet</a>` : ''}
+            <div class="popup-detail">
+              <i data-lucide="map-pin"></i> 
+              <span>${escapeHtml(locationText)}<br/>${escapeHtml(oc.country)}</span>
+            </div>
+            ${userLink ? `<a class="btn" href="${userLink}" target="_blank"><i data-lucide="message-square"></i> Discord Profile</a>` : ''}
+            ${oc.profileLink ? `<a class="btn btn-primary" href="${oc.profileLink}" target="_blank"><i data-lucide="file-text"></i> Character Sheet</a>` : ''}
           </div>
         `;
 
         const marker = L.marker([oc.lat, oc.lon], { icon: customIcon });
         marker.bindPopup(popupContent);
         markers.addLayer(marker);
-
-        // Fixed Discord Avatar Fetcher using reliable mesalinc lookup
-        if (oc.discordId && /^\d+$/.test(oc.discordId)) {
-          fetch(`https://discordlookup.mesalinc.com/v1/user/${oc.discordId}`)
-            .then(r => r.json())
-            .then(userData => {
-              // The API returns the direct image URL in avatar.link
-              if (userData && userData.avatar && userData.avatar.link) {
-                const img = document.getElementById(avatarElementId);
-                if (img) {
-                  img.src = userData.avatar.link + '?size=64';
-                }
-              }
-            })
-            .catch(() => { /* Fails silently, leaves default gray polaroid */ });
-        }
       });
 
       map.addLayer(markers);
-      lucide.createIcons(); // Re-initialize icons for dynamically created DOM elements
+      lucide.createIcons();
     }
 
     function escapeHtml(str) {
