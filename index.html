@@ -5,101 +5,100 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OC World Birthplace Map</title>
   
-  <!-- Leaflet Map CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- Marker Cluster CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
     }
-    body {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      background: #0f1117;
-      color: #fff;
+    body { 
+      display: flex; 
+      flex-direction: column; 
+      height: 100vh; 
+      background: #0f1117; 
+      color: #fff; 
     }
-    header {
-      padding: 12px 20px;
-      background: #181a20;
-      border-bottom: 1px solid #282b36;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 1000;
+    header { 
+      padding: 12px 20px; 
+      background: #181a20; 
+      border-bottom: 1px solid #282b36; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      z-index: 1000; 
     }
-    h1 {
-      font-size: 1.15rem;
-      font-weight: 700;
-      letter-spacing: 0.5px;
+    h1 { 
+      font-size: 1.15rem; 
+      font-weight: 700; 
+      letter-spacing: 0.5px; 
     }
-    #counter {
-      color: #9ba1b0;
-      font-size: 0.85rem;
-      font-weight: 500;
+    #counter { 
+      color: #9ba1b0; 
+      font-size: 0.85rem; 
+      font-weight: 500; 
     }
-    #map {
-      flex: 1;
-      width: 100%;
+    #map { 
+      flex: 1; 
+      width: 100%; 
     }
-    /* Popup Card Styles */
-    .leaflet-popup-content-wrapper {
-      background: #1e222d;
-      color: #e2e8f0;
-      border-radius: 8px;
-      border: 1px solid #33394b;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    .leaflet-popup-content-wrapper { 
+      background: #1e222d; 
+      color: #e2e8f0; 
+      border-radius: 8px; 
+      border: 1px solid #33394b; 
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
     }
-    .leaflet-popup-tip {
-      background: #1e222d;
+    .leaflet-popup-tip { 
+      background: #1e222d; 
     }
-    .oc-card {
-      padding: 4px;
-      font-size: 13px;
-      line-height: 1.5;
+    .oc-card { 
+      padding: 4px; 
+      font-size: 13px; 
+      line-height: 1.5; 
     }
-    .oc-card h3 {
-      font-size: 15px;
-      color: #5865F2; /* Discord Blurple */
-      margin-bottom: 6px;
+    .oc-card h3 { 
+      font-size: 15px; 
+      color: #5865F2; 
+      margin-bottom: 6px; 
     }
-    .oc-field {
-      margin-bottom: 4px;
+    .oc-field { 
+      margin-bottom: 4px; 
     }
-    .oc-field strong {
-      color: #94a3b8;
+    .oc-field strong { 
+      color: #94a3b8; 
     }
-    .btn-group {
-      margin-top: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+    .btn-group { 
+      margin-top: 10px; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 6px; 
     }
-    .btn {
-      display: block;
-      text-align: center;
-      padding: 6px 10px;
-      border-radius: 5px;
-      text-decoration: none;
-      font-size: 12px;
-      font-weight: 600;
-      transition: opacity 0.2s;
+    .btn { 
+      display: block; 
+      text-align: center; 
+      padding: 6px 10px; 
+      border-radius: 5px; 
+      text-decoration: none; 
+      font-size: 12px; 
+      font-weight: 600; 
+      transition: opacity 0.2s; 
     }
-    .btn:hover { opacity: 0.85; }
-    .btn-discord-user {
-      background-color: #2b2d31;
-      color: #dbdee1;
-      border: 1px solid #3f4147;
+    .btn:hover { 
+      opacity: 0.85; 
     }
-    .btn-profile {
-      background-color: #5865F2;
-      color: #ffffff;
+    .btn-discord-user { 
+      background-color: #2b2d31; 
+      color: #dbdee1; 
+      border: 1px solid #3f4147; 
+    }
+    .btn-profile { 
+      background-color: #5865F2; 
+      color: #ffffff; 
     }
   </style>
 </head>
@@ -112,38 +111,35 @@
 
   <div id="map"></div>
 
-  <!-- Leaflet Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
   <script>
-    // Paste your Google Web App URL ending in /exec below:
-    const API_URL = 'PASTE_YOUR_EXEC_URL_HERE';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzWvHeUVafTSusTld5wreBbY9lR_eQWoG_467p7E94fA5bl1T4fd8ne4EpYKhdt_OLR2A/exec';
 
-    // Center map globally
     const map = L.map('map').setView([20, 0], 2);
 
-    // Free OpenStreetMap tile server (no API key required, no watermarks)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19
     }).addTo(map);
 
-    // Cluster group for overlapping pins
     const markers = L.markerClusterGroup({
       spiderfyOnMaxZoom: true,
       showCoverageOnHover: false,
       zoomToBoundsOnClick: true
     });
 
-    fetch(API_URL)
-      .then(res => res.json())
+    fetch(API_URL, { redirect: 'follow' })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         document.getElementById('counter').innerText = `${data.length} Character${data.length === 1 ? '' : 's'} Registered`;
 
         data.forEach(oc => {
           const locationText = oc.hospital ? `${oc.hospital}, ${oc.city}, ${oc.country}` : `${oc.city}, ${oc.country}`;
-          
           const userLink = oc.discordId ? `https://discord.com/users/${oc.discordId}` : null;
 
           const popup = `
@@ -167,7 +163,7 @@
       })
       .catch(err => {
         console.error('Error fetching pins:', err);
-        document.getElementById('counter').innerText = 'Failed to load entries.';
+        document.getElementById('counter').innerText = 'Failed to load entries. Check console.';
       });
 
     function escapeHtml(str) {
