@@ -117,14 +117,15 @@
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
   <script>
-    const API_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnQRKS0KOxYxlMgd28zyB9syQ24W9nXf42CxGs0TGHVD1OReR6uI_VGm3uYDz5uUw9riOSMmkN64ITayPkpCJqlCb-AmAjn4qNw0LKEMHhRmsI-3dTFw831vr4ZZqBWQh1uXiw7_P6hbx5iklYJPfa2h5dSElfEFzzQgANCTUFdo51XlS3bqe3oSNq42WDpmSSmumWtmgwqbeKMQKCYq7-oKWKZAE2J1_tMRv42S1KeNdiWh6yeXVXtOY22Hsn3Fwdd7jaFUYSTmqODzZv5zMI4cs3gxpQ&lib=Mw5vPTjn4UjD5Lm0oUHfc6lMxQhbz4HXW';
+    // Paste your Google Web App URL ending in /exec below:
+    const API_URL = 'PASTE_YOUR_EXEC_URL_HERE';
 
     // Center map globally
     const map = L.map('map').setView([20, 0], 2);
 
-    // Dark-style world map layer
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
+    // Free OpenStreetMap tile server (no API key required, no watermarks)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19
     }).addTo(map);
 
