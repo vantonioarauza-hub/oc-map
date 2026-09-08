@@ -5,148 +5,333 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OC World Birthplace Map</title>
   
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Marker Cluster CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <style>
+    :root {
+      --bg-main: #0c0e12;
+      --bg-panel: rgba(19, 23, 34, 0.82);
+      --border-panel: rgba(255, 255, 255, 0.08);
+      --blurple: #5865F2;
+      --blurple-glow: rgba(88, 101, 242, 0.55);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
     * { 
       box-sizing: border-box; 
       margin: 0; 
       padding: 0; 
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+      font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+      -webkit-font-smoothing: antialiased;
     }
+
     body { 
       display: flex; 
       flex-direction: column; 
       height: 100vh; 
-      background: #0f1117; 
-      color: #fff; 
+      background: var(--bg-main); 
+      color: var(--text-main); 
+      overflow: hidden;
     }
+
+    /* Floating Header Card */
     header { 
-      padding: 12px 20px; 
-      background: #181a20; 
-      border-bottom: 1px solid #282b36; 
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-panel);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--border-panel);
+      border-radius: 9999px;
+      padding: 10px 22px;
       display: flex; 
-      justify-content: space-between; 
       align-items: center; 
+      gap: 16px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
       z-index: 1000; 
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
+
+    header:hover {
+      border-color: rgba(88, 101, 242, 0.3);
+      box-shadow: 0 16px 40px rgba(88, 101, 242, 0.15);
+    }
+
     h1 { 
-      font-size: 1.15rem; 
+      font-size: 0.95rem; 
       font-weight: 700; 
-      letter-spacing: 0.5px; 
+      letter-spacing: -0.2px; 
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+
     #counter { 
-      color: #9ba1b0; 
-      font-size: 0.85rem; 
-      font-weight: 500; 
+      color: var(--text-muted); 
+      font-size: 0.8rem; 
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
+
+    #counter::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+    }
+
     #map { 
       flex: 1; 
       width: 100%; 
+      height: 100%;
+      background: #0c0e12;
     }
+
+    /* Custom Discord Map Pin */
+    .custom-pin-wrapper {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .custom-pin-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 2px solid var(--blurple);
+      background: #181a20;
+      object-fit: cover;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45), 0 0 12px var(--blurple-glow);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+    }
+
+    .custom-pin-wrapper:hover .custom-pin-avatar {
+      transform: scale(1.18) translateY(-4px);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.6), 0 0 20px var(--blurple);
+    }
+
+    .custom-pin-wrapper::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid var(--blurple);
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .custom-pin-wrapper:hover::after {
+      transform: translateX(-50%) translateY(2px);
+    }
+
+    /* Glassmorphism Popup Window */
     .leaflet-popup-content-wrapper { 
-      background: #1e222d; 
-      color: #e2e8f0; 
-      border-radius: 8px; 
-      border: 1px solid #33394b; 
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+      background: var(--bg-panel) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      color: var(--text-main) !important; 
+      border-radius: 14px !important; 
+      border: 1px solid var(--border-panel) !important; 
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65) !important;
+      padding: 6px !important;
     }
+
     .leaflet-popup-tip { 
-      background: #1e222d; 
+      background: var(--bg-panel) !important; 
+      border: 1px solid var(--border-panel) !important;
     }
+
     .oc-card { 
-      padding: 4px; 
+      padding: 6px 4px;
       font-size: 13px; 
       line-height: 1.5; 
+      min-width: 210px;
     }
+
     .oc-card h3 { 
-      font-size: 15px; 
-      color: #5865F2; 
-      margin-bottom: 6px; 
+      font-size: 16px; 
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+      margin-bottom: 8px; 
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
+
     .oc-field { 
-      margin-bottom: 4px; 
+      margin-bottom: 5px; 
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-size: 12.5px;
     }
+
     .oc-field strong { 
-      color: #94a3b8; 
+      color: var(--text-muted); 
+      font-weight: 500;
+      min-width: 58px;
     }
+
     .btn-group { 
-      margin-top: 10px; 
+      margin-top: 12px; 
       display: flex; 
       flex-direction: column; 
       gap: 6px; 
     }
+
     .btn { 
-      display: block; 
-      text-align: center; 
-      padding: 6px 10px; 
-      border-radius: 5px; 
+      display: inline-flex; 
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 8px 12px; 
+      border-radius: 8px; 
       text-decoration: none; 
       font-size: 12px; 
       font-weight: 600; 
-      transition: opacity 0.2s; 
+      letter-spacing: -0.1px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
+
     .btn:hover { 
-      opacity: 0.85; 
+      transform: translateY(-1px);
     }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
     .btn-discord-user { 
-      background-color: #2b2d31; 
-      color: #dbdee1; 
-      border: 1px solid #3f4147; 
+      background: rgba(255, 255, 255, 0.06); 
+      color: #e2e8f0; 
+      border: 1px solid rgba(255, 255, 255, 0.08); 
     }
+
+    .btn-discord-user:hover { 
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
     .btn-profile { 
-      background-color: #5865F2; 
+      background: var(--blurple); 
       color: #ffffff; 
+      box-shadow: 0 4px 12px rgba(88, 101, 242, 0.35);
+    }
+
+    .btn-profile:hover { 
+      background: #4752c4;
+      box-shadow: 0 6px 16px rgba(88, 101, 242, 0.5);
+    }
+
+    /* MarkerCluster Custom Theme */
+    .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+      background-color: rgba(88, 101, 242, 0.3) !important;
+    }
+
+    .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+      background-color: var(--blurple) !important;
+      color: #fff !important;
+      font-weight: 700 !important;
+      font-family: 'Inter', sans-serif !important;
+      box-shadow: 0 0 14px var(--blurple-glow);
     }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>🗺️ OC Registry Map</h1>
-    <div id="counter">Loading pins...</div>
+    <h1>🗺️ OC World Registry</h1>
+    <div id="counter">Loading registry...</div>
   </header>
 
   <div id="map"></div>
 
+  <!-- Leaflet Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbzWvHeUVafTSusTld5wreBbY9lR_eQWoG_467p7E94fA5bl1T4fd8ne4EpYKhdt_OLR2A/exec';
 
-    const map = L.map('map').setView([20, 0], 2);
+    const map = L.map('map', {
+      zoomControl: false,
+      attributionControl: false
+    }).setView([20, 0], 3);
 
+    // Reposition zoom controls to bottom-right so the floating header stays clean
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    // Free OpenStreetMap tile server
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19
     }).addTo(map);
 
+    // Clusters with smooth spiderfy animations
     const markers = L.markerClusterGroup({
       spiderfyOnMaxZoom: true,
       showCoverageOnHover: false,
-      zoomToBoundsOnClick: true
+      zoomToBoundsOnClick: true,
+      maxClusterRadius: 35
     });
+
+    const defaultAvatar = "https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png";
 
     fetch(API_URL, { redirect: 'follow' })
       .then(res => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
       .then(data => {
-        document.getElementById('counter').innerText = `${data.length} Character${data.length === 1 ? '' : 's'} Registered`;
+        document.getElementById('counter').innerText = `${data.length} Character${data.length === 1 ? '' : 's'} Active`;
 
         data.forEach(oc => {
           const locationText = oc.hospital ? `${oc.hospital}, ${oc.city}, ${oc.country}` : `${oc.city}, ${oc.country}`;
           const userLink = oc.discordId ? `https://discord.com/users/${oc.discordId}` : null;
+          const avatarElementId = `avatar-${oc.discordId || Math.random().toString(36).substr(2, 9)}`;
+
+          const customIcon = L.divIcon({
+            className: 'custom-pin-wrapper',
+            html: `<img class="custom-pin-avatar" id="${avatarElementId}" src="${defaultAvatar}" alt="Discord Avatar" />`,
+            iconSize: [44, 44],
+            iconAnchor: [22, 43],
+            popupAnchor: [0, -38]
+          });
 
           const popup = `
             <div class="oc-card">
               <h3>${escapeHtml(oc.ocName)}</h3>
-              <div class="oc-field"><strong>Location:</strong> ${escapeHtml(locationText)}</div>
-              <div class="oc-field"><strong>Creator:</strong> @${escapeHtml(oc.discordUsername)}</div>
+              <div class="oc-field"><strong>Location</strong> <span>${escapeHtml(locationText)}</span></div>
+              <div class="oc-field"><strong>Creator</strong> <span>@${escapeHtml(oc.discordUsername)}</span></div>
               <div class="btn-group">
                 ${userLink ? `<a class="btn btn-discord-user" href="${userLink}" target="_blank">👤 View Discord User</a>` : ''}
                 ${oc.profileLink ? `<a class="btn btn-profile" href="${oc.profileLink}" target="_blank">📜 View OC Profile</a>` : ''}
@@ -154,16 +339,31 @@
             </div>
           `;
 
-          const marker = L.marker([oc.lat, oc.lon]);
+          const marker = L.marker([oc.lat, oc.lon], { icon: customIcon });
           marker.bindPopup(popup);
           markers.addLayer(marker);
+
+          // Fetch the live Discord avatar dynamically if a numeric User ID is provided
+          if (oc.discordId && /^\d+$/.test(oc.discordId)) {
+            fetch(`https://api.discordlookup.com/v1/user/${oc.discordId}`)
+              .then(r => r.json())
+              .then(userData => {
+                if (userData && userData.avatar && userData.avatar.id) {
+                  const img = document.getElementById(avatarElementId);
+                  if (img) {
+                    img.src = `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar.id}.png?size=64`;
+                  }
+                }
+              })
+              .catch(() => {});
+          }
         });
 
         map.addLayer(markers);
       })
       .catch(err => {
-        console.error('Error fetching pins:', err);
-        document.getElementById('counter').innerText = 'Failed to load entries. Check console.';
+        console.error('Error fetching registry pins:', err);
+        document.getElementById('counter').innerText = 'Failed to load entries';
       });
 
     function escapeHtml(str) {
